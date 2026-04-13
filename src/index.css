@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-3px);
+    }
+  }
+
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
+
+  .glass-input {
+    @apply bg-transparent border-t-0 border-l-0 border-r-0 border-b border-white/30 py-2 text-white placeholder:text-white/60 focus:outline-none focus:border-white transition-all;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+  }
+
+  /* Antigravity Theme */
+  .bg-antigravity {
+    background-color: #050505;
+    background-image: radial-gradient(circle at 50% 50%, #0a0a0f 0%, #050505 100%);
+  }
+
+  .liquid-metal-text {
+    background: linear-gradient(135deg, #ffffff 0%, #a1a1a1 50%, #ffffff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+  }
+
+  .ethereal-glow {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.15), inset 0 0 15px rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+  }
+
+  .glass-card-luxury {
+    @apply backdrop-blur-2xl bg-white/5 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)];
+  }
+
+  .animate-slow-spin {
+    animation: slow-spin 20s linear infinite;
+  }
+
+  .animate-float-heavy {
+    animation: float-heavy 6s ease-in-out infinite;
+  }
+
+  @keyframes slow-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes float-heavy {
+    0%, 100% { transform: translateY(0) scale(1.02); }
+    50% { transform: translateY(-20px) scale(1); }
+  }
+
+  .haptic-slider {
+    @apply relative h-1.5 bg-white/10 rounded-full overflow-hidden;
+  }
+
+  .haptic-slider-thumb {
+    @apply absolute top-0 left-0 h-full bg-gradient-to-r from-blue-400 to-silver-400 shadow-[0_0_10px_rgba(96,165,250,0.5)];
+  }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .hero-gradient {
+    background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.8));
+  }
+
+  @keyframes zoom {
+    from { transform: scale(1); }
+    to { transform: scale(1.15); }
+  }
+}
