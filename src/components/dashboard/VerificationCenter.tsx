@@ -2,26 +2,50 @@ import { useState } from 'react';
 import { Shield, Upload, CheckCircle, XCircle, Clock, FileText, User } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSafeTravel } from '../../contexts/SafeTravelContext';
+import { supabase } from '../../lib/supabase';
 
 export function VerificationCenter() {
   const { profile } = useAuth();
   const { verifications, addVerification, updateVerification } = useSafeTravel();
   const [uploadType, setUploadType] = useState<'id' | 'address_proof'>('id');
+  const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleUpload = () => {
-    if (!profile) return;
+  const handleUpload = async () => {
+    if (!profile || !file) return;
     setIsSubmitting(true);
     
-    // Simulate upload delay
-    setTimeout(() => {
-      addVerification({
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${profile.id}/${uploadType}_${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('verification-docs')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL (though bucket is private, we store the path)
+      const { data: { publicUrl } } = supabase.storage
+        .from('verification-docs')
+        .getPublicUrl(filePath);
+
+      await addVerification({
         local_id: profile.id,
         document_type: uploadType,
-        document_url: 'https://example.com/mock-doc.jpg'
+        document_url: publicUrl // Store the URL or path
       });
+
+      setFile(null);
+      alert('Verification document submitted successfully!');
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      alert(`Upload failed: ${error.message}`);
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -79,10 +103,28 @@ export function VerificationCenter() {
                   </select>
                 </div>
 
-                <div className="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center hover:border-teal-400 hover:bg-teal-50/50 transition-all cursor-pointer group">
-                  <Upload className="w-8 h-8 text-slate-300 mx-auto mb-3 group-hover:text-teal-500 group-hover:scale-110 transition-all" />
-                  <p className="text-sm font-semibold text-slate-600 mb-1">Upload Document</p>
-                  <p className="text-[10px] text-slate-400">PDF, JPG, or PNG (Max 10MB)</p>
+                <div className="relative">
+                  <input
+                    type="file"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                    id="file-upload"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                  />
+                  <label 
+                    htmlFor="file-upload"
+                    className={`block border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer group ${
+                      file ? 'border-teal-500 bg-teal-50/50' : 'border-slate-200 hover:border-teal-400 hover:bg-teal-50/50'
+                    }`}
+                  >
+                    <Upload className={`w-8 h-8 mx-auto mb-3 transition-all ${
+                      file ? 'text-teal-600' : 'text-slate-300 group-hover:text-teal-500 group-hover:scale-110'
+                    }`} />
+                    <p className={`text-sm font-semibold mb-1 ${file ? 'text-teal-700' : 'text-slate-600'}`}>
+                      {file ? file.name : 'Upload Document'}
+                    </p>
+                    <p className="text-[10px] text-slate-400">PDF, JPG, or PNG (Max 10MB)</p>
+                  </label>
                 </div>
 
                 <button 

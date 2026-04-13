@@ -3,17 +3,6 @@ import { useState, useEffect } from 'react';
 type Page = 'landing' | 'login' | 'register' | 'dashboard';
 
 export function useNavigate() {
-  const [currentPage, setCurrentPage] = useState<Page>('landing');
-
-  useEffect(() => {
-    const handler = (e: CustomEvent<Page>) => {
-      setCurrentPage(e.detail);
-    };
-
-    window.addEventListener('navigate' as any, handler);
-    return () => window.removeEventListener('navigate' as any, handler);
-  }, []);
-
   const navigate = (page: Page) => {
     window.dispatchEvent(new CustomEvent('navigate', { detail: page }));
   };

@@ -7,6 +7,7 @@ import { LandingPage } from './components/LandingPage';
 import { LoginPage } from './components/LoginPage';
 import { RegisterPage } from './components/RegisterPage';
 import { Dashboard } from './components/Dashboard';
+import { ChatAssistant } from './components/common/ChatAssistant';
 
 function AppContent() {
   const currentPage = useCurrentPage();
@@ -27,7 +28,12 @@ function AppContent() {
   }
 
   if (user && currentPage !== 'landing' && currentPage !== 'login' && currentPage !== 'register') {
-    return <Dashboard />;
+    return (
+      <>
+        <Dashboard />
+        <ChatAssistant />
+      </>
+    );
   }
 
   switch (currentPage) {
@@ -36,9 +42,19 @@ function AppContent() {
     case 'register':
       return <RegisterPage />;
     case 'dashboard':
-      return user ? <Dashboard /> : <LoginPage />;
+      return (
+        <>
+          {user ? <Dashboard /> : <LoginPage />}
+          <ChatAssistant />
+        </>
+      );
     default:
-      return <LandingPage />;
+      return (
+        <>
+          <LandingPage />
+          <ChatAssistant />
+        </>
+      );
   }
 }
 

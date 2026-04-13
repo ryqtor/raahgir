@@ -3,17 +3,8 @@ import { ShieldAlert, MapPin, AlertTriangle, Search, PlusCircle, X } from 'lucid
 import { useAuth } from '../../contexts/AuthContext';
 import { useSafeTravel } from '../../contexts/SafeTravelContext';
 
-interface ScamReport {
-  id: string;
-  reporter_id: string;
-  location: string;
-  description: string;
-  status: 'pending' | 'verified' | 'dismissed';
-  created_at: string;
-}
-
 export function ScamAlerts() {
-  const { scamReports, addScamReport, userLocation } = useSafeTravel();
+  const { scamReports, addScamReport, userLocation, updateScamReport } = useSafeTravel();
   const { profile } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [showReportForm, setShowReportForm] = useState(false);
@@ -39,12 +30,11 @@ export function ScamAlerts() {
   };
 
   const handleApprove = (id: string) => {
-    // Admin functionality to be fully implemented in SafeTravelContext
-    console.log('Approve scam', id);
+    updateScamReport(id, 'verified');
   };
 
   const handleDismiss = (id: string) => {
-    console.log('Dismiss scam', id);
+    updateScamReport(id, 'dismissed');
   };
 
   return (

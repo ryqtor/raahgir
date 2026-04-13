@@ -1,8 +1,14 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
 /**
  * AI Assistance Module Service
- * Provides functions for question classification, scam-risk detection, 
- * and safety recommendations as per FR29-FR33.
+ * Provides real-time classification, scam-risk detection, 
+ * and safety recommendations using Google Gemini 1.5 Flash.
  */
+
+const GENAI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(GENAI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 export type QuestionCategory = 'safety' | 'price' | 'route' | 'food' | 'scam';
 
@@ -11,93 +17,109 @@ export interface AISuggestion {
   confidence: number;
   scamRisk: 'low' | 'medium' | 'high';
   safetyTips: string[];
+  explanation: string;
 }
 
-const SCAM_KEYWORDS = ['cheap', 'offer', 'win', 'lottery', 'free', 'urgent', 'exclusive', 'secret', 'hidden charge', 'no receipt'];
-const SAFETY_KEYWORDS = ['safe', 'danger', 'night', 'alone', 'crime', 'police', 'hospital', 'watch out'];
-const PRICE_KEYWORDS = ['cost', 'price', 'expensive', 'cheap', 'budget', 'how much', 'fare', 'taxi'];
-const ROUTE_KEYWORDS = ['way', 'road', 'how to get', 'train', 'bus', 'flight', 'direction', 'map', 'distance'];
-const FOOD_KEYWORDS = ['eat', 'restaurant', 'street food', 'tasty', 'vegan', 'halal', 'menu', 'dish'];
+export interface ChatMessage {
+  role: 'user' | 'model';
+  content: string;
+}
 
 export const aiService = {
   /**
-   * Automatically classify a question into a category (FR29)
-   */
-  classifyQuestion: (text: string): QuestionCategory => {
-    const lowerText = text.toLowerCase();
-    
-    if (SCAM_KEYWORDS.some(k => lowerText.includes(k))) return 'scam';
-    if (SAFETY_KEYWORDS.some(k => lowerText.includes(k))) return 'safety';
-    if (PRICE_KEYWORDS.some(k => lowerText.includes(k))) return 'price';
-    if (ROUTE_KEYWORDS.some(k => lowerText.includes(k))) return 'route';
-    if (FOOD_KEYWORDS.some(k => lowerText.includes(k))) return 'food';
-    
-    return 'safety'; // Default
-  },
-
-  /**
-   * Detect scam-risk patterns from queries (FR30)
-   */
-  detectScamRisk: (text: string): 'low' | 'medium' | 'high' => {
-    const lowerText = text.toLowerCase();
-    const matches = SCAM_KEYWORDS.filter(k => lowerText.includes(k)).length;
-    
-    if (matches >= 3) return 'high';
-    if (matches >= 1) return 'medium';
-    return 'low';
-  },
-
-  /**
-   * Generate AI safety tips based on city and category (FR31)
-   */
-  getSafetyTips: (location: string, category: QuestionCategory): string[] => {
-    const tips: Record<QuestionCategory, string[]> = {
-      'safety': [
-        `Stay alert in crowded areas of ${location}.`,
-        'Keep your belongings secure and avoid displaying valuables.',
-        'Use reputable transportation services especially at night.'
-      ],
-      'price': [
-        'Always ask for a receipt or formal price agreement.',
-        'Compare prices across multiple vendors if possible.',
-        'Be wary of offers that seem too good to be true.'
-      ],
-      'route': [
-        'Download offline maps for the area.',
-        'Stick to well-lit and busy roads.',
-        'Inform someone of your intended route.'
-      ],
-      'food': [
-        'Choose vendors with high customer turnover.',
-        'Check for hygiene ratings where available.',
-        'If it smells off, don\'t eat it.'
-      ],
-      'scam': [
-        'WARNING: This query matches common scam patterns.',
-        'Never share personal details or payment info with unverified individuals.',
-        'Locals rarely approach tourists with "exclusive deals".'
-      ]
-    };
-
-    return tips[category] || tips['safety'];
-  },
-
-  /**
-   * Get full AI analysis for a query
+   * Get full AI analysis for a query using Google Gemini
    */
   analyzeQuery: async (text: string, location: string): Promise<AISuggestion> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
+    if (!GENAI_API_KEY || GENAI_API_KEY === 'YOUR_GEMINI_API_KEY') {
+      console.warn('Gemini API key not found. Falling back to mock analysis.');
+      return aiService.mockAnalyze(text, location);
+    }
 
-    const category = aiService.classifyQuestion(text);
-    const scamRisk = aiService.detectScamRisk(text);
-    const safetyTips = aiService.getSafetyTips(location, category);
+    try {
+      const prompt = `
+        Analyze this travel-related question for a user visiting ${location}:
+        "${text}"
+
+        Provide the analysis in the following JSON format ONLY:
+        {
+          "category": "safety" | "price" | "route" | "food" | "scam",
+          "confidence": number (0-1),
+          "scamRisk": "low" | "medium" | "high",
+          "safetyTips": ["tip 1", "tip 2", "tip 3"],
+          "explanation": "Short 1-sentence explanation of why this was flagged"
+        }
+      `;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const jsonText = response.text().replace(/```json|```/gi, "").trim();
+      const analysis = JSON.parse(jsonText);
+
+      return {
+        category: analysis.category,
+        confidence: analysis.confidence || 0.9,
+        scamRisk: analysis.scamRisk || 'low',
+        safetyTips: analysis.safetyTips || [],
+        explanation: analysis.explanation || "Analyzed by Raahgir AI"
+      };
+    } catch (error) {
+      console.error('Gemini AI Analysis Error:', error);
+      return aiService.mockAnalyze(text, location);
+    }
+  },
+
+  /**
+   * Fallback mock analysis if API fails
+   */
+  mockAnalyze: async (text: string, location: string): Promise<AISuggestion> => {
+    const lowerText = text.toLowerCase();
+    let category: QuestionCategory = 'safety';
+    if (lowerText.includes('price') || lowerText.includes('cost')) category = 'price';
+    if (lowerText.includes('way') || lowerText.includes('route')) category = 'route';
+    if (lowerText.includes('eat') || lowerText.includes('food')) category = 'food';
+    if (lowerText.includes('scam') || lowerText.includes('cheap')) category = 'scam';
 
     return {
       category,
-      confidence: 0.85 + (Math.random() * 0.1),
-      scamRisk,
-      safetyTips
+      confidence: 0.7,
+      scamRisk: category === 'scam' ? 'high' : 'low',
+      safetyTips: [`Be careful in ${location} regarding ${category}.`],
+      explanation: "Analysis performed via local pattern matching."
     };
+  },
+
+  /**
+   * Get AI chat response for the global assistant
+   */
+  getChatResponse: async (history: ChatMessage[], message: string): Promise<string> => {
+    if (!GENAI_API_KEY || GENAI_API_KEY === 'YOUR_GEMINI_API_KEY') {
+      return "I'm currently in offline mode. Please configure the Gemini API key to start chatting!";
+    }
+
+    try {
+      // Use systemInstruction for more robust persona
+      const chatModel = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        systemInstruction: "You are the Raahgir AI Travel Assistant. Your goal is to help travelers stay safe, find local information, and navigate new cities. Be professional, friendly, and always prioritize traveler safety."
+      });
+
+      const chat = chatModel.startChat({
+        history: history.map(m => ({
+          role: m.role,
+          parts: [{ text: m.content }],
+        })),
+        generationConfig: {
+          maxOutputTokens: 800,
+        },
+      });
+
+      const result = await chat.sendMessage(message);
+      const response = await result.response;
+      return response.text();
+    } catch (error) {
+      console.error('Gemini Chat Error:', error);
+      // Detailed error for debugging if needed, though user sees "cannot connect"
+      return "I'm sorry, I'm having trouble connecting to my brain right now. Please check your API key or network connection.";
+    }
   }
 };

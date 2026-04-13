@@ -33,6 +33,10 @@ export interface Query {
   status: 'open' | 'answered' | 'resolved';
   created_at: string;
   profiles?: Profile;
+  ai_scam_risk?: 'low' | 'medium' | 'high';
+  ai_safety_tips?: string[];
+  ai_explanation?: string;
+  ai_confidence?: number;
 }
 
 export interface Answer {
@@ -84,3 +88,14 @@ export interface AdminLog {
   timestamp: string;
 }
 
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: 'answer' | 'verification' | 'system' | 'helpful';
+  title: string;
+  message: string;
+  link?: string;
+  is_read: boolean;
+  created_at: string;
+  metadata?: any;
+}

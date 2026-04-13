@@ -7,8 +7,8 @@ import { AnswerCard } from './AnswerCard';
 
 export function LiveFeed() {
   const { 
-    queries, addQuery, fetchQueries,
-    answers, addAnswer, fetchAnswers, rateAnswer, 
+    queries, addQuery,
+    answers, addAnswer, fetchAnswers,
     userLocation, verifiedLocals 
   } = useSafeTravel();
   const { profile } = useAuth();
@@ -25,15 +25,11 @@ export function LiveFeed() {
     is_anonymous: true,
   });
 
-  const [aiAnalysis, setAiAnalysis] = useState<Record<string, AISuggestion>>({});
+  const [aiAnalysis] = useState<Record<string, AISuggestion>>({});
 
-  // Auto-analyze existing queries for the demo and fetch answers
+  // Fetch answers for queries
   useEffect(() => {
-    queries.forEach(async (q) => {
-      if (!aiAnalysis[q.id]) {
-        const analysis = await aiService.analyzeQuery(q.question, q.location);
-        setAiAnalysis((prev: Record<string, AISuggestion>) => ({ ...prev, [q.id]: analysis }));
-      }
+    queries.forEach((q) => {
       if (!answers[q.id]) {
         fetchAnswers(q.id);
       }
@@ -210,28 +206,35 @@ export function LiveFeed() {
                   </p>
 
                   {/* AI Safety Panel (FR31 & FR30) */}
-                  {analysis && (
+                  {(query.ai_scam_risk || query.category === 'scam') && (
                     <div className={`mb-6 rounded-2xl p-4 border ${
-                      analysis.scamRisk === 'high' ? 'bg-red-50 border-red-100' : 
-                      analysis.scamRisk === 'medium' ? 'bg-amber-50 border-amber-100' : 'bg-blue-50 border-blue-100'
+                      query.ai_scam_risk === 'high' ? 'bg-red-50 border-red-100' : 
+                      query.ai_scam_risk === 'medium' ? 'bg-amber-50 border-amber-100' : 'bg-blue-50 border-blue-100'
                     }`}>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <ShieldCheck className={`w-5 h-5 ${
-                            analysis.scamRisk === 'high' ? 'text-red-600' : 
-                            analysis.scamRisk === 'medium' ? 'text-amber-600' : 'text-blue-600'
+                            query.ai_scam_risk === 'high' ? 'text-red-600' : 
+                            query.ai_scam_risk === 'medium' ? 'text-amber-600' : 'text-blue-600'
                           }`} />
                           <span className="text-sm font-bold text-slate-900">AI Safety Insights</span>
                         </div>
                         <div className="px-2 py-0.5 rounded text-[10px] font-bold bg-white text-slate-500 border border-slate-100">
                           Scam Risk: <span className={
-                            analysis.scamRisk === 'high' ? 'text-red-600' : 
-                            analysis.scamRisk === 'medium' ? 'text-amber-600' : 'text-teal-600'
-                          }>{analysis.scamRisk.toUpperCase()}</span>
+                            query.ai_scam_risk === 'high' ? 'text-red-600' : 
+                            query.ai_scam_risk === 'medium' ? 'text-amber-600' : 'text-teal-600'
+                          }>{(query.ai_scam_risk || 'low').toUpperCase()}</span>
                         </div>
                       </div>
+                      
+                      {query.ai_explanation && (
+                        <p className="text-xs font-semibold text-slate-600 mb-3 italic">
+                          "{query.ai_explanation}"
+                        </p>
+                      )}
+
                       <div className="space-y-2">
-                        {analysis.safetyTips.map((tip: string, i: number) => (
+                        {(query.ai_safety_tips || []).map((tip: string, i: number) => (
                           <div key={i} className="flex items-start gap-2 text-xs text-slate-700">
                             <Info className="w-3.5 h-3.5 mt-0.5 text-slate-400 shrink-0" />
                             {tip}
